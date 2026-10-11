@@ -5,10 +5,11 @@ import {
   buttonPrimary,
   buttonSecondary,
   card,
-  fieldError,
   fieldInput,
   fieldLabel,
+  warning,
 } from '../components/styles';
+import { useFieldErrors } from '../components/useFieldErrors';
 import { usePrototype } from '../prototype/context';
 import {
   PRIORITY_HELP,
@@ -20,18 +21,31 @@ import {
 } from '../prototype/format';
 import type { Attachment, TicketCategory, TicketPriority } from '../prototype/types';
 
+type Field = 'building' | 'title' | 'description';
+
+// Nell'ordine in cui compaiono nel form: il focus va al primo campo con errore.
+const FIELD_ID: Record<Field, string> = {
+  building: 'ticket-edificio',
+  title: 'ticket-titolo',
+  description: 'ticket-descrizione',
+};
+
 export function NewTicketPage() {
   const { state, dispatch } = usePrototype();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [buildingId, setBuildingId] = useState(searchParams.get('edificio') ?? '');
+  const requestedBuilding = searchParams.get('edificio');
+  const unknownBuilding =
+    requestedBuilding !== null && !state.buildings.some((b) => b.id === requestedBuilding);
+
+  const [buildingId, setBuildingId] = useState(unknownBuilding ? '' : (requestedBuilding ?? ''));
   const [category, setCategory] = useState<TicketCategory>('Altro');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState<TicketPriority>('media');
   const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { setErrors, errorProps, errorMessage } = useFieldErrors(FIELD_ID);
 
   const addFiles = (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
@@ -45,7 +59,7 @@ export function NewTicketPage() {
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const found: Record<string, string> = {};
+    const found: Partial<Record<Field, string>> = {};
     if (!state.buildings.some((b) => b.id === buildingId)) found.building = 'Scegli un edificio.';
     if (!title.trim()) found.title = 'Scrivi un titolo breve.';
     if (!description.trim()) found.description = 'Descrivi il problema.';
@@ -81,6 +95,13 @@ export function NewTicketPage() {
         description="Segnala un guasto o un intervento urgente. Il ticket viene preso in carico da un tecnico, che lo aggiorna fino alla chiusura."
       />
 
+      {unknownBuilding && (
+        <p className={`${warning} max-w-2xl`}>
+          L’edificio indicato nel link («{requestedBuilding}») non esiste nei dati di esempio:
+          sceglilo dall’elenco qui sotto.
+        </p>
+      )}
+
       <form onSubmit={handleSubmit} noValidate className={`${card} max-w-2xl space-y-4`}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -92,6 +113,7 @@ export function NewTicketPage() {
               className={fieldInput}
               value={buildingId}
               onChange={(e) => setBuildingId(e.target.value)}
+              {...errorProps('building')}
             >
               <option value="">Scegli un edificio…</option>
               {state.buildings.map((b) => (
@@ -100,11 +122,7 @@ export function NewTicketPage() {
                 </option>
               ))}
             </select>
-            {errors.building && (
-              <p role="alert" className={fieldError}>
-                {errors.building}
-              </p>
-            )}
+            {errorMessage('building')}
           </div>
           <div>
             <label htmlFor="ticket-categoria" className={fieldLabel}>
@@ -136,12 +154,9 @@ export function NewTicketPage() {
             placeholder="Es. Perdita d’acqua nel bagno del 1° piano"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            {...errorProps('title')}
           />
-          {errors.title && (
-            <p role="alert" className={fieldError}>
-              {errors.title}
-            </p>
-          )}
+          {errorMessage('title')}
         </div>
 
         <div>
@@ -155,12 +170,9 @@ export function NewTicketPage() {
             placeholder="Cosa succede, dove esattamente, da quando"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
+            {...errorProps('description')}
           />
-          {errors.description && (
-            <p role="alert" className={fieldError}>
-              {errors.description}
-            </p>
-          )}
+          {errorMessage('description')}
         </div>
 
         <fieldset>

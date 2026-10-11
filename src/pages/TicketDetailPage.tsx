@@ -2,18 +2,20 @@ import { useState, type FormEvent } from 'react';
 import { Link, useLocation, useParams } from 'react-router';
 import { PriorityBadge, TicketStatusBadge } from '../components/Badge';
 import { PageHeader } from '../components/PageHeader';
+import { StatusMessage } from '../components/StatusMessage';
 import {
   buttonPrimary,
   buttonSecondary,
   card,
-  fieldError,
   fieldInput,
   fieldLabel,
   link,
-  notice,
 } from '../components/styles';
+import { useFieldErrors } from '../components/useFieldErrors';
 import { usePrototype } from '../prototype/context';
 import { STATUS_HELP, TEAM, formatDateTime, nowIso } from '../prototype/format';
+
+const FIELD_ID = { closingNote: 'ticket-nota-chiusura' };
 
 export function TicketDetailPage() {
   const { id } = useParams();
@@ -24,7 +26,7 @@ export function TicketDetailPage() {
   const [assignee, setAssignee] = useState(TEAM[0]);
   const [statusNote, setStatusNote] = useState('');
   const [closingNote, setClosingNote] = useState('');
-  const [closingError, setClosingError] = useState('');
+  const { setErrors, errorProps, errorMessage } = useFieldErrors(FIELD_ID);
   const [message, setMessage] = useState<string>();
 
   if (!ticket) {
@@ -57,11 +59,11 @@ export function TicketDetailPage() {
     e.preventDefault();
     const note = closingNote.trim();
     if (!note) {
-      setClosingError('Descrivi l’intervento svolto prima di chiudere.');
+      setErrors({ closingNote: 'Descrivi l’intervento svolto prima di chiudere.' });
       return;
     }
     dispatch({ type: 'closeTicket', id: ticket.id, note, at: nowIso() });
-    setClosingError('');
+    setErrors({});
     setClosingNote('');
     setMessage('Ticket chiuso. L’intervento risulta concluso.');
   };
@@ -77,14 +79,10 @@ export function TicketDetailPage() {
       </Link>
       <PageHeader title={`${ticket.id} · ${ticket.title}`} />
 
-      {flashMessage && (
-        <p role="status" className={notice}>
-          {flashMessage}
-        </p>
-      )}
+      <StatusMessage message={flashMessage} />
 
       <div className="mb-6 flex flex-wrap items-center gap-2">
-        <TicketStatusBadge status={ticket.status} />
+        <TicketStatusBadge status={ticket.status} describe={false} />
         <PriorityBadge priority={ticket.priority} />
         <span className="text-sm text-slate-600">{STATUS_HELP[ticket.status]}</span>
       </div>
@@ -208,12 +206,9 @@ export function TicketDetailPage() {
                     placeholder="Cosa è stato fatto per risolvere il problema"
                     value={closingNote}
                     onChange={(e) => setClosingNote(e.target.value)}
+                    {...errorProps('closingNote')}
                   />
-                  {closingError && (
-                    <p role="alert" className={fieldError}>
-                      {closingError}
-                    </p>
-                  )}
+                  {errorMessage('closingNote')}
                   <button type="submit" className={buttonPrimary}>
                     Chiudi ticket
                   </button>

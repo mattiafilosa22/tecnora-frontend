@@ -1,7 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { PageHeader } from '../components/PageHeader';
-import { card, fieldInput, fieldLabel, link, table, td, th } from '../components/styles';
+import {
+  card,
+  desktopOnly,
+  fieldInput,
+  fieldLabel,
+  link,
+  mobileOnly,
+  table,
+  td,
+  th,
+} from '../components/styles';
 import { usePrototype } from '../prototype/context';
 import { BUILDING_TYPES } from '../prototype/format';
 
@@ -69,9 +79,9 @@ export function BuildingsPage() {
             <thead className="bg-slate-50">
               <tr>
                 <th className={th}>Edificio</th>
-                <th className={th}>Indirizzo</th>
-                <th className={th}>Città</th>
-                <th className={th}>Tipo</th>
+                <th className={`${th} ${desktopOnly}`}>Indirizzo</th>
+                <th className={`${th} ${desktopOnly}`}>Città</th>
+                <th className={`${th} ${desktopOnly}`}>Tipo</th>
                 <th className={th}>Attività</th>
                 <th className={th}>Ticket aperti</th>
               </tr>
@@ -84,10 +94,13 @@ export function BuildingsPage() {
                       {b.name}
                     </Link>
                     <p className="text-xs text-slate-500">{b.code}</p>
+                    <p className={`${mobileOnly} text-xs text-slate-500`}>
+                      {b.type} · {b.address}, {b.city}
+                    </p>
                   </td>
-                  <td className={td}>{b.address}</td>
-                  <td className={td}>{b.city}</td>
-                  <td className={td}>{b.type}</td>
+                  <td className={`${td} ${desktopOnly}`}>{b.address}</td>
+                  <td className={`${td} ${desktopOnly}`}>{b.city}</td>
+                  <td className={`${td} ${desktopOnly}`}>{b.type}</td>
                   <td className={td}>{activityCount(b.id)}</td>
                   <td className={td}>{openTicketCount(b.id)}</td>
                 </tr>

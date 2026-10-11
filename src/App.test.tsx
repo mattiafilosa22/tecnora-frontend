@@ -17,6 +17,13 @@ function section(heading: string) {
   return element;
 }
 
+/** Il messaggio di conferma visibile: le regioni live restano nel DOM anche quando sono vuote. */
+function statusMessage() {
+  const filled = screen.getAllByRole('status').filter((el) => el.textContent);
+  expect(filled).toHaveLength(1);
+  return filled[0];
+}
+
 function openNewTicket() {
   renderAt('/ticket/nuovo');
   fireEvent.change(screen.getByLabelText('Edificio'), { target: { value: 'ed-02' } });
@@ -73,7 +80,7 @@ describe('App', () => {
     fireEvent.click(
       screen.getByRole('button', { name: 'Segna come completata: Pulizia uffici e servizi' }),
     );
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(statusMessage()).toHaveTextContent(
       /«Pulizia uffici e servizi» completata\. Prossima scadenza: /,
     );
   });
@@ -81,8 +88,14 @@ describe('App', () => {
   it('crea una nuova attività dopo la validazione', () => {
     renderAt('/programma/nuova');
     fireEvent.click(screen.getByRole('button', { name: 'Salva attività' }));
-    const alerts = screen.getAllByRole('alert').map((a) => a.textContent);
-    expect(alerts).toEqual(['Scegli un edificio.', 'Scrivi una descrizione.']);
+    const building = screen.getByLabelText('Edificio');
+    const title = screen.getByLabelText('Descrizione attività');
+    expect(building).toHaveAttribute('aria-invalid', 'true');
+    expect(building).toHaveAccessibleDescription('Scegli un edificio.');
+    expect(title).toHaveAttribute('aria-invalid', 'true');
+    expect(title).toHaveAccessibleDescription('Scrivi una descrizione.');
+    expect(screen.getByLabelText('Prima scadenza')).not.toHaveAttribute('aria-invalid');
+    expect(building).toHaveFocus();
 
     fireEvent.change(screen.getByLabelText('Edificio'), { target: { value: 'ed-05' } });
     fireEvent.change(screen.getByLabelText('Descrizione attività'), {
@@ -95,10 +108,10 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Programma manutenzioni e pulizie' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
+    expect(statusMessage()).toHaveTextContent(
       'Attività «Pulizia parcheggio interrato» aggiunta al programma.',
     );
-    const row = screen.getByRole('cell', { name: 'Pulizia parcheggio interrato' }).closest('tr');
+    const row = screen.getByText('Pulizia parcheggio interrato').closest('tr');
     expect(row).not.toBeNull();
     expect(within(row as HTMLElement).getByText('Trimestrale')).toBeInTheDocument();
   });
@@ -108,7 +121,7 @@ describe('App', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'TCK-1009 · Perdita sotto il lavandino' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent('Ticket TCK-1009 aperto.');
+    expect(statusMessage()).toHaveTextContent('Ticket TCK-1009 aperto.');
     expect(screen.getByText('Aperto')).toBeInTheDocument();
     expect(within(section('Riepilogo')).getByText('foto-guasto.jpg')).toBeInTheDocument();
     expect(within(section('Cronologia')).getByText('Ticket aperto')).toBeInTheDocument();
@@ -134,11 +147,14 @@ describe('App', () => {
     expect(screen.getByText('In carico')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi ticket' }));
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    const closingNote = screen.getByLabelText('Nota di chiusura');
+    expect(closingNote).toHaveAttribute('aria-invalid', 'true');
+    expect(closingNote).toHaveAccessibleDescription(
       'Descrivi l’intervento svolto prima di chiudere.',
     );
+    expect(closingNote).toHaveFocus();
 
-    fireEvent.change(screen.getByLabelText('Nota di chiusura'), {
+    fireEvent.change(closingNote, {
       target: { value: 'Sostituito il sifone' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Chiudi ticket' }));
@@ -162,6 +178,52 @@ describe('App', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Azzera filtri' }));
     expect(screen.getByText('8 ticket')).toBeInTheDocument();
+  });
+
+  it('dalla dashboard porta all’elenco con lo stesso numero di ticket da gestire', () => {
+    renderAt('/dashboard');
+    const cardLink = screen.getByRole('link', { name: /Ticket da gestire/ });
+    expect(cardLink).toHaveTextContent('6');
+    fireEvent.click(cardLink);
+    expect(screen.getByLabelText('Stato')).toHaveValue('da_gestire');
+    expect(screen.getByText('6 ticket')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'TCK-1006' })).not.toBeInTheDocument();
+  });
+
+  it('sposta il focus sul titolo e aggiorna il documento a ogni cambio di pagina', () => {
+    renderAt('/dashboard');
+    expect(document.title).toBe('Dashboard · Tecnora DFM (prototipo)');
+    const nav = screen.getByRole('navigation', { name: 'Navigazione principale' });
+    fireEvent.click(within(nav).getByRole('link', { name: 'Edifici' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Edifici' })).toHaveFocus();
+    expect(document.title).toBe('Edifici · Tecnora DFM (prototipo)');
+    expect(screen.getByRole('link', { name: 'Vai al contenuto' })).toHaveAttribute(
+      'href',
+      '#contenuto',
+    );
+  });
+
+  it('chiede conferma prima di ripristinare i dati di esempio', () => {
+    openNewTicket();
+    fireEvent.click(screen.getByRole('button', { name: 'Ripristina dati di esempio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'No, mantieni le modifiche' }));
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'TCK-1009 · Perdita sotto il lavandino' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ripristina dati di esempio' })).toHaveFocus();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ripristina dati di esempio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sì, ripristina' }));
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Ticket non trovato' }),
+    ).toBeInTheDocument();
+    expect(statusMessage()).toHaveTextContent('Dati di esempio ripristinati');
+  });
+
+  it('avvisa se il link punta a un edificio inesistente', () => {
+    renderAt('/ticket/nuovo?edificio=ed-99');
+    expect(screen.getByText(/«ed-99»\) non esiste nei dati di esempio/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Edificio')).toHaveValue('');
   });
 
   it('mostra un messaggio per le pagine inesistenti', () => {

@@ -52,8 +52,8 @@ export function DashboardPage() {
           <p className="mt-1 text-3xl font-semibold text-slate-900">{dueSoon.length}</p>
           <p className="mt-1 text-sm text-slate-500">di cui {overdue} già scadute</p>
         </Link>
-        <Link to="/ticket?stato=aperto" className={`${card} block hover:border-blue-300`}>
-          <p className="text-sm text-slate-600">Ticket aperti</p>
+        <Link to="/ticket?stato=da_gestire" className={`${card} block hover:border-blue-300`}>
+          <p className="text-sm text-slate-600">Ticket da gestire (non ancora chiusi)</p>
           <p className="mt-1 text-3xl font-semibold text-slate-900">{openTickets.length}</p>
           <p className="mt-1 text-sm text-slate-500">di cui {urgent} urgenti</p>
         </Link>

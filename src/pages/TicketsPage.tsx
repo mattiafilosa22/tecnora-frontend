@@ -1,10 +1,11 @@
 import { Link, useSearchParams } from 'react-router';
-import { PriorityBadge, TicketStatusBadge } from '../components/Badge';
+import { PriorityBadge, TicketLegend, TicketStatusBadge } from '../components/Badge';
 import { PageHeader } from '../components/PageHeader';
 import {
   buttonPrimary,
   buttonSecondary,
   card,
+  desktopOnly,
   fieldInput,
   fieldLabel,
   link,
@@ -21,6 +22,9 @@ import {
   TICKET_STATUSES,
   formatDateTime,
 } from '../prototype/format';
+
+/** Filtro di comodo: aperti, in carico e in attesa insieme (è il numero mostrato in dashboard). */
+const DA_GESTIRE = 'da_gestire';
 
 export function TicketsPage() {
   const { state } = usePrototype();
@@ -42,7 +46,8 @@ export function TicketsPage() {
   const tickets = state.tickets
     .filter(
       (t) =>
-        (!statusFilter || t.status === statusFilter) &&
+        (!statusFilter ||
+          (statusFilter === DA_GESTIRE ? t.status !== 'chiuso' : t.status === statusFilter)) &&
         (!priorityFilter || t.priority === priorityFilter) &&
         (!buildingFilter || t.buildingId === buildingFilter),
     )
@@ -77,6 +82,7 @@ export function TicketsPage() {
             onChange={(e) => setFilter('stato', e.target.value)}
           >
             <option value="">Tutti</option>
+            <option value={DA_GESTIRE}>Da gestire (tutti tranne i chiusi)</option>
             {TICKET_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {STATUS_LABEL[s]}
@@ -131,6 +137,8 @@ export function TicketsPage() {
         </div>
       </div>
 
+      <TicketLegend />
+
       <p className="mb-2 text-sm text-slate-600">{tickets.length} ticket</p>
 
       {tickets.length === 0 ? (
@@ -142,12 +150,12 @@ export function TicketsPage() {
               <tr>
                 <th className={th}>Codice</th>
                 <th className={th}>Titolo</th>
-                <th className={th}>Edificio</th>
-                <th className={th}>Categoria</th>
                 <th className={th}>Priorità</th>
                 <th className={th}>Stato</th>
-                <th className={th}>Assegnatario</th>
-                <th className={th}>Aperto il</th>
+                <th className={th}>Edificio</th>
+                <th className={`${th} ${desktopOnly}`}>Categoria</th>
+                <th className={`${th} ${desktopOnly}`}>Assegnatario</th>
+                <th className={`${th} ${desktopOnly}`}>Aperto il</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -159,16 +167,18 @@ export function TicketsPage() {
                     </Link>
                   </td>
                   <td className={td}>{t.title}</td>
-                  <td className={td}>{buildingName(t.buildingId)}</td>
-                  <td className={td}>{t.category}</td>
                   <td className={td}>
                     <PriorityBadge priority={t.priority} />
                   </td>
                   <td className={td}>
                     <TicketStatusBadge status={t.status} />
                   </td>
-                  <td className={td}>{t.assignee ?? 'Non assegnato'}</td>
-                  <td className={`${td} whitespace-nowrap`}>{formatDateTime(t.openedAt)}</td>
+                  <td className={td}>{buildingName(t.buildingId)}</td>
+                  <td className={`${td} ${desktopOnly}`}>{t.category}</td>
+                  <td className={`${td} ${desktopOnly}`}>{t.assignee ?? 'Non assegnato'}</td>
+                  <td className={`${td} ${desktopOnly} whitespace-nowrap`}>
+                    {formatDateTime(t.openedAt)}
+                  </td>
                 </tr>
               ))}
             </tbody>

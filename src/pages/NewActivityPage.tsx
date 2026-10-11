@@ -5,10 +5,11 @@ import {
   buttonPrimary,
   buttonSecondary,
   card,
-  fieldError,
   fieldInput,
   fieldLabel,
+  warning,
 } from '../components/styles';
+import { useFieldErrors } from '../components/useFieldErrors';
 import { usePrototype } from '../prototype/context';
 import {
   ACTIVITY_KINDS,
@@ -20,23 +21,36 @@ import {
 } from '../prototype/format';
 import type { ActivityKind, Frequency } from '../prototype/types';
 
+type Field = 'building' | 'title' | 'nextDue';
+
+// Nell'ordine in cui compaiono nel form: il focus va al primo campo con errore.
+const FIELD_ID: Record<Field, string> = {
+  building: 'attivita-edificio',
+  title: 'attivita-titolo',
+  nextDue: 'attivita-scadenza',
+};
+
 export function NewActivityPage() {
   const { state, dispatch, today } = usePrototype();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const [buildingId, setBuildingId] = useState(searchParams.get('edificio') ?? '');
+  const requestedBuilding = searchParams.get('edificio');
+  const unknownBuilding =
+    requestedBuilding !== null && !state.buildings.some((b) => b.id === requestedBuilding);
+
+  const [buildingId, setBuildingId] = useState(unknownBuilding ? '' : (requestedBuilding ?? ''));
   const [title, setTitle] = useState('');
   const [kind, setKind] = useState<ActivityKind>('manutenzione');
   const [frequency, setFrequency] = useState<Frequency>('mensile');
   const [nextDue, setNextDue] = useState(today);
   const [assignee, setAssignee] = useState(TEAM[0]);
   const [notes, setNotes] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const { setErrors, errorProps, errorMessage } = useFieldErrors(FIELD_ID);
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    const found: Record<string, string> = {};
+    const found: Partial<Record<Field, string>> = {};
     if (!state.buildings.some((b) => b.id === buildingId)) found.building = 'Scegli un edificio.';
     if (!title.trim()) found.title = 'Scrivi una descrizione.';
     if (!nextDue) found.nextDue = 'Indica la data della prima scadenza.';
@@ -69,6 +83,13 @@ export function NewActivityPage() {
         description="Pianifica una manutenzione o una pulizia che si ripete nel tempo. Dopo ogni completamento la scadenza avanza in base alla frequenza scelta."
       />
 
+      {unknownBuilding && (
+        <p className={`${warning} max-w-2xl`}>
+          L’edificio indicato nel link («{requestedBuilding}») non esiste nei dati di esempio:
+          sceglilo dall’elenco qui sotto.
+        </p>
+      )}
+
       <form onSubmit={handleSubmit} noValidate className={`${card} max-w-2xl space-y-4`}>
         <div>
           <label htmlFor="attivita-edificio" className={fieldLabel}>
@@ -79,6 +100,7 @@ export function NewActivityPage() {
             className={fieldInput}
             value={buildingId}
             onChange={(e) => setBuildingId(e.target.value)}
+            {...errorProps('building')}
           >
             <option value="">Scegli un edificio…</option>
             {state.buildings.map((b) => (
@@ -87,11 +109,7 @@ export function NewActivityPage() {
               </option>
             ))}
           </select>
-          {errors.building && (
-            <p role="alert" className={fieldError}>
-              {errors.building}
-            </p>
-          )}
+          {errorMessage('building')}
         </div>
 
         <div>
@@ -104,12 +122,9 @@ export function NewActivityPage() {
             placeholder="Es. Pulizia parcheggio interrato"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            {...errorProps('title')}
           />
-          {errors.title && (
-            <p role="alert" className={fieldError}>
-              {errors.title}
-            </p>
-          )}
+          {errorMessage('title')}
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
@@ -157,12 +172,9 @@ export function NewActivityPage() {
               className={fieldInput}
               value={nextDue}
               onChange={(e) => setNextDue(e.target.value)}
+              {...errorProps('nextDue')}
             />
-            {errors.nextDue && (
-              <p role="alert" className={fieldError}>
-                {errors.nextDue}
-              </p>
-            )}
+            {errorMessage('nextDue')}
           </div>
           <div>
             <label htmlFor="attivita-assegnatario" className={fieldLabel}>

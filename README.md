@@ -54,8 +54,9 @@ Aprire http://localhost:5173.
 
 1. **Introduzione** (`/`): spiegare che è un prototipo con dati fittizi, utile a validare flussi e
    perimetro.
-2. **Dashboard**: leggere le tre card (edifici, attività entro 7 giorni, ticket aperti) e le liste
-   «Prossime attività» e «Ticket da gestire».
+2. **Dashboard**: leggere le tre card (edifici, attività entro 7 giorni, ticket da gestire) e le
+   liste «Prossime attività» e «Ticket da gestire». La card dei ticket apre l'elenco filtrato su
+   «Da gestire», con lo stesso numero.
 3. **Edifici**: cercare «Tigli», aprire «Sede Uffici Via dei Tigli» e mostrare dati anagrafici,
    referente, attività e ticket dell'edificio.
 4. **Programma**: premere «Segna come completata» su un'attività scaduta e leggere la nuova
@@ -68,6 +69,9 @@ Aprire http://localhost:5173.
 
 Da confermare con il committente: stati dei ticket, livelli di priorità e tempi indicativi,
 categorie, regola di ricorrenza (la scadenza avanza mantenendo la cadenza) e assegnatari.
+
+Fuori dal prototipo: stati di caricamento ed errori di rete. I dati sono in memoria e le azioni
+sono immediate, quindi queste schermate arriveranno con l'integrazione delle API.
 
 ## Variabili d'ambiente
 

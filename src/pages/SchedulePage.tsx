@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router';
-import { DueBadge } from '../components/Badge';
+import { DueBadge, DueLegend } from '../components/Badge';
 import { PageHeader } from '../components/PageHeader';
+import { StatusMessage } from '../components/StatusMessage';
 import {
   buttonPrimary,
   buttonSecondary,
   card,
+  desktopOnly,
   fieldInput,
   fieldLabel,
   link,
-  notice,
+  mobileOnly,
   table,
   td,
   th,
@@ -68,11 +70,7 @@ export function SchedulePage() {
         }
       />
 
-      {flashMessage && (
-        <p role="status" className={notice}>
-          {flashMessage}
-        </p>
-      )}
+      <StatusMessage message={flashMessage} />
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <div>
@@ -113,6 +111,8 @@ export function SchedulePage() {
         </div>
       </div>
 
+      <DueLegend />
+
       {activities.length === 0 ? (
         <p className={card}>Nessuna attività con questi filtri.</p>
       ) : (
@@ -120,14 +120,13 @@ export function SchedulePage() {
           <table className={table}>
             <thead className="bg-slate-50">
               <tr>
-                <th className={th}>Edificio</th>
                 <th className={th}>Attività</th>
-                <th className={th}>Tipo</th>
-                <th className={th}>Frequenza</th>
+                <th className={th}>Edificio</th>
                 <th className={th}>Prossima scadenza</th>
-                <th className={th}>Assegnatario</th>
                 <th className={th}>Stato</th>
-                <th className={th}>Azione</th>
+                <th className={`${th} ${desktopOnly}`}>Tipo</th>
+                <th className={`${th} ${desktopOnly}`}>Frequenza</th>
+                <th className={`${th} ${desktopOnly}`}>Assegnatario</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -135,19 +134,28 @@ export function SchedulePage() {
                 const building = state.buildings.find((b) => b.id === a.buildingId);
                 return (
                   <tr key={a.id}>
+                    {/* L'azione sta nella prima colonna, così resta visibile anche su mobile. */}
+                    <td className={`${td} min-w-48`}>
+                      <p className="font-medium">{a.title}</p>
+                      {a.notes && <p className="text-xs text-slate-500">{a.notes}</p>}
+                      <p className={`${mobileOnly} text-xs text-slate-500`}>
+                        {`${KIND_LABEL[a.kind]} · ${FREQUENCY_LABEL[a.frequency]} · ${a.assignee}`}
+                      </p>
+                      <button
+                        type="button"
+                        className={`${buttonSecondary} mt-2 whitespace-nowrap`}
+                        aria-label={`Segna come completata: ${a.title}`}
+                        onClick={() => complete(a)}
+                      >
+                        Segna come completata
+                      </button>
+                    </td>
                     <td className={td}>
                       <Link to={`/edifici/${a.buildingId}`} className={link}>
                         {building?.name ?? '—'}
                       </Link>
                     </td>
-                    <td className={td}>
-                      {a.title}
-                      {a.notes && <p className="text-xs text-slate-500">{a.notes}</p>}
-                    </td>
-                    <td className={td}>{KIND_LABEL[a.kind]}</td>
-                    <td className={td}>{FREQUENCY_LABEL[a.frequency]}</td>
                     <td className={`${td} whitespace-nowrap`}>{formatDate(a.nextDue)}</td>
-                    <td className={td}>{a.assignee}</td>
                     <td className={td}>
                       <DueBadge status={dueStatus(a.nextDue, today)} />
                       {a.lastCompletedOn && (
@@ -156,16 +164,9 @@ export function SchedulePage() {
                         </p>
                       )}
                     </td>
-                    <td className={td}>
-                      <button
-                        type="button"
-                        className={`${buttonSecondary} whitespace-nowrap`}
-                        aria-label={`Segna come completata: ${a.title}`}
-                        onClick={() => complete(a)}
-                      >
-                        Segna come completata
-                      </button>
-                    </td>
+                    <td className={`${td} ${desktopOnly}`}>{KIND_LABEL[a.kind]}</td>
+                    <td className={`${td} ${desktopOnly}`}>{FREQUENCY_LABEL[a.frequency]}</td>
+                    <td className={`${td} ${desktopOnly}`}>{a.assignee}</td>
                   </tr>
                 );
               })}
