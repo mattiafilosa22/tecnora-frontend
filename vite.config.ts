@@ -1,0 +1,14 @@
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: true,
+    // Su Docker Desktop (macOS/Windows) gli eventi del bind mount non arrivano al container.
+    watch: process.env.VITE_USE_POLLING === 'true' ? { usePolling: true } : undefined,
+  },
+  test: { environment: 'jsdom', setupFiles: ['./src/test/setup.ts'] },
+});
