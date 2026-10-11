@@ -1,4 +1,5 @@
 # tecnora-frontend
+
 Tecnora — frontend admin (React, TanStack Query, Tailwind)
 
 ## Requisiti
@@ -47,6 +48,9 @@ docker compose up --build
 ```
 
 Avvia Vite in ascolto su `0.0.0.0:5173`, con il codice montato come volume: http://localhost:5173.
+
+Su Docker Desktop (macOS/Windows) l'HMR può non rilevare le modifiche ai file: in quel caso avviare
+con `VITE_USE_POLLING=true docker compose up --build`.
 
 ### Produzione
 
